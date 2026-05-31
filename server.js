@@ -151,7 +151,7 @@ const server = http.createServer(app);
 // Setup Socket.io
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:' + PORT,
+        origin: '*',
         methods: ['GET', 'POST']
     }
 });
@@ -164,24 +164,15 @@ const monitor = new WalletMonitor(db, copyTrader, io);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration (allow localhost only for security)
+// CORS configuration (allow all origins to support direct VDS IP access)
 app.use(cors({
-    origin: NODE_ENV === 'production' ? false : true,
+    origin: true,
     credentials: true
 }));
 
-// Helmet security setup (configured to support CDN resources like Tailwind and Google Fonts)
+// Helmet security setup (Content Security Policy is disabled to prevent browsers from blocking CDN and WebSocket resources when accessing via HTTP without SSL)
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-            "script-src": ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
-            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            "font-src": ["'self'", "https://fonts.gstatic.com"],
-            "img-src": ["'self'", "data:", "https://*"],
-            "connect-src": ["'self'", "ws://localhost:" + PORT, "http://localhost:" + PORT, "https://*"]
-        }
-    }
+    contentSecurityPolicy: false
 }));
 
 // Express Rate Limiter for APIs
@@ -233,7 +224,7 @@ app.use((err, req, res, next) => {
 });
 
 // 7. Start Server & Auto-Start Monitor
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log('==================================================');
     console.log(`🚀 PolyTrader Sunucusu Çalışıyor!`);
     console.log(`🌐 Dashboard: http://localhost:${PORT}`);
