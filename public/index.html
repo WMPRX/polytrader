@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyTrader - Polymarket Copy Trading Bot</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Configuration for customized theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f1117',
+                        cardbg: '#1a1d27',
+                        accent: '#00d4aa',
+                        accenthover: '#00f3c3',
+                        danger: '#ff4757',
+                        success: '#2ed573',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-darkbg text-slate-100 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-white/5 bg-cardbg/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Left Side: Logo & Brand -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-accent/10 p-2 rounded-lg border border-accent/20">
+                        <i class="fa-solid fa-chart-line text-accent text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                            PolyTrader <span class="text-xs font-normal text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">Beta</span>
+                        </h1>
+                        <p class="text-[10px] text-slate-400">Copy Trading Bot</p>
+                    </div>
+                </div>
+
+                <!-- Middle: Nav Links -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link active font-medium text-sm py-5">Dashboard</a>
+                    <a href="/wallets" class="nav-link font-medium text-sm py-5">Cüzdan Yönetimi</a>
+                    <a href="/trades" class="nav-link font-medium text-sm py-5">İşlem Geçmişi</a>
+                    <a href="/settings" class="nav-link font-medium text-sm py-5">Ayarlar</a>
+                </nav>
+
+                <!-- Right Side: Wallet details & Bot Status -->
+                <div class="flex items-center gap-4">
+                    <!-- Wallet & Balance details -->
+                    <div class="hidden sm:flex flex-col items-end text-right">
+                        <span class="text-[10px] text-slate-400 flex items-center gap-1">
+                            <i class="fa-solid fa-wallet text-accent"></i> Bağlı Cüzdan
+                        </span>
+                        <span id="header-wallet" class="text-xs font-semibold text-white">Yükleniyor...</span>
+                        <span id="header-balance" class="text-xs text-accent font-medium">0.00 USDC</span>
+                    </div>
+
+                    <!-- Bot control & Status dot -->
+                    <div class="flex items-center gap-2 bg-black/20 p-1.5 rounded-lg border border-white/5">
+                        <div id="status-dot" class="w-2.5 h-2.5 rounded-full pulse-yellow"></div>
+                        <span id="status-text" class="text-xs font-bold text-slate-300 uppercase mr-1">Kontrol Ediliyor</span>
+                        
+                        <button id="btn-toggle-bot" class="p-1 px-2 text-xs font-semibold rounded bg-slate-700 hover:bg-slate-600 text-white transition">
+                            Yükleniyor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Nav Bar (bottom stick) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-cardbg border-t border-white/5 z-50 flex justify-around py-2">
+        <a href="/" class="flex flex-col items-center gap-0.5 text-accent text-xs">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/wallets" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-users-viewfinder text-lg"></i>
+            <span>Cüzdanlar</span>
+        </a>
+        <a href="/trades" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-history text-lg"></i>
+            <span>İşlemler</span>
+        </a>
+        <a href="/settings" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span>Ayarlar</span>
+        </a>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-16 md:mb-0">
+
+        <!-- Simulation Warning Banner -->
+        <div id="sim-banner" class="hidden mb-6 flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500/20 p-2 rounded-lg text-amber-500">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-amber-300 text-sm">Bot Test Modunda (Simülasyon Aktif)</h4>
+                    <p class="text-xs text-amber-400/80">Şu anda işlemler gerçek bakiye harcamadan taklit edilmektedir. Gerçek işlemler için ayarlar sayfasından test modunu kapatın.</p>
+                </div>
+            </div>
+            <a href="/settings" class="text-xs bg-amber-500 hover:bg-amber-400 text-black px-3 py-1.5 font-bold rounded-lg transition">Ayarlara Git</a>
+        </div>
+
+        <!-- 4 KPI Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- 1. Total P&L Card -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm font-semibold text-slate-400">Toplam Kar / Zarar (P&L)</span>
+                    <div class="bg-accent/10 p-2.5 rounded-lg text-accent">
+                        <i class="fa-solid fa-coins text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 id="kpi-pnl" class="text-3xl font-extrabold text-white">$0.00</h3>
+                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                        <i id="kpi-pnl-icon" class="fa-solid fa-circle-nodes"></i>
+                        <span id="kpi-pnl-sub">Tüm zamanların net birikimi</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. Win Rate Card -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm font-semibold text-slate-400">Başarı Oranı (Win Rate)</span>
+                    <div class="bg-emerald-500/10 p-2.5 rounded-lg text-emerald-500">
+                        <i class="fa-solid fa-trophy text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 id="kpi-winrate" class="text-3xl font-extrabold text-white">0%</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        <span id="kpi-trades-count" class="font-semibold text-white">0 / 0</span> kopyalanan başarılı işlem
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3. Tracked Wallets Card -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm font-semibold text-slate-400">Takip Edilen Cüzdanlar</span>
+                    <div class="bg-blue-500/10 p-2.5 rounded-lg text-blue-400">
+                        <i class="fa-solid fa-users-viewfinder text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 id="kpi-wallets" class="text-3xl font-extrabold text-white">0 / 0</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        <span class="font-semibold text-accent">Aktif Takip</span> edilen cüzdan / Toplam
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. Today Volume Card -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm font-semibold text-slate-400">Bugünkü İşlem Hacmi</span>
+                    <div class="bg-indigo-500/10 p-2.5 rounded-lg text-indigo-400">
+                        <i class="fa-solid fa-chart-column text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 id="kpi-volume" class="text-3xl font-extrabold text-white">0.00 USDC</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Son 24 saatteki toplam kopyalanan hacim
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Column Layout (Chart and Logs) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- P&L Chart (Left 2 columns) -->
+            <div class="glass-card p-6 lg:col-span-2">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Performans Grafiği (PnL)</h3>
+                        <p class="text-xs text-slate-400">Kümülatif kar zarar değişimi</p>
+                    </div>
+                    <!-- Time Filters -->
+                    <div class="flex bg-black/30 p-1 rounded-lg border border-white/5 text-xs font-semibold">
+                        <button onclick="changeTimeframe('24S')" class="chart-filter px-3 py-1.5 rounded-md text-slate-400 hover:text-white transition">24S</button>
+                        <button onclick="changeTimeframe('7G')" class="chart-filter px-3 py-1.5 rounded-md text-slate-400 hover:text-white transition">7G</button>
+                        <button onclick="changeTimeframe('30G')" class="chart-filter px-3 py-1.5 rounded-md text-slate-400 hover:text-white transition">30G</button>
+                        <button onclick="changeTimeframe('all')" class="chart-filter active px-3 py-1.5 rounded-md bg-accent text-darkbg hover:text-darkbg transition">Tümü</button>
+                    </div>
+                </div>
+                <div class="h-[300px] w-full relative">
+                    <canvas id="pnlChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Live Logs Panel (Right 1 column) -->
+            <div class="glass-card p-6 flex flex-col h-[400px] lg:h-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            Canlı Aktivite Akışı <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span></span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Sunucu log akışı</p>
+                    </div>
+                    <button id="btn-pause-scroll" class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-1 px-2.5 rounded transition">
+                        <i class="fa-solid fa-pause mr-1"></i> Duraklat
+                    </button>
+                </div>
+                <!-- Log Container -->
+                <div id="log-container" class="log-box flex-grow p-4 rounded-lg overflow-y-auto text-xs space-y-1.5 h-[200px]">
+                    <!-- Logs will stream here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Trades Table -->
+        <div class="glass-card p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Son Kopyalanan İşlemler</h3>
+                    <p class="text-xs text-slate-400">En son yürütülen copy trade işlemleri</p>
+                </div>
+                <a href="/trades" class="text-xs text-accent hover:text-accenthover font-bold flex items-center gap-1">
+                    Tümünü Gör <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b border-white/5 text-slate-400 text-xs font-semibold uppercase">
+                            <th class="py-3 px-4">Tarih / Zaman</th>
+                            <th class="py-3 px-4">İzlenen Cüzdan</th>
+                            <th class="py-3 px-4">Market Sorusu</th>
+                            <th class="py-3 px-4 text-center">Yön</th>
+                            <th class="py-3 px-4">Tercih</th>
+                            <th class="py-3 px-4">Miktar</th>
+                            <th class="py-3 px-4">Fiyat</th>
+                            <th class="py-3 px-4 text-center">Durum</th>
+                            <th class="py-3 px-4 text-right">P&L (USDC)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-trades-tbody" class="divide-y divide-white/5">
+                        <!-- Simulated trade rows will render here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-white/5 bg-cardbg py-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 PolyTrader - Polymarket Copy Trading Bot. Tüm Hakları Saklıdır.</p>
+            <p class="text-[10px] text-slate-600 mt-1">Eethers.js v6 & better-sqlite3 ile geliştirilmiştir. Sadece eğitim ve araştırma amaçlıdır.</p>
+        </div>
+    </footer>
+
+    <!-- Socket and Dashboard Scripts -->
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

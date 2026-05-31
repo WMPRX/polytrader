@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cüzdan Yönetimi - PolyTrader</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f1117',
+                        cardbg: '#1a1d27',
+                        accent: '#00d4aa',
+                        accenthover: '#00f3c3',
+                        danger: '#ff4757',
+                        success: '#2ed573',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkbg text-slate-100 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-white/5 bg-cardbg/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-accent/10 p-2 rounded-lg border border-accent/20">
+                        <i class="fa-solid fa-chart-line text-accent text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                            PolyTrader
+                        </h1>
+                        <p class="text-[10px] text-slate-400">Copy Trading Bot</p>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link font-medium text-sm py-5">Dashboard</a>
+                    <a href="/wallets" class="nav-link active font-medium text-sm py-5">Cüzdan Yönetimi</a>
+                    <a href="/trades" class="nav-link font-medium text-sm py-5">İşlem Geçmişi</a>
+                    <a href="/settings" class="nav-link font-medium text-sm py-5">Ayarlar</a>
+                </nav>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-open-add-modal" class="btn-accent px-4 py-2 text-xs rounded-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Cüzdan Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Nav Bar (bottom stick) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-cardbg border-t border-white/5 z-50 flex justify-around py-2">
+        <a href="/" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/wallets" class="flex flex-col items-center gap-0.5 text-accent text-xs">
+            <i class="fa-solid fa-users-viewfinder text-lg"></i>
+            <span>Cüzdanlar</span>
+        </a>
+        <a href="/trades" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-history text-lg"></i>
+            <span>İşlemler</span>
+        </a>
+        <a href="/settings" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span>Ayarlar</span>
+        </a>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-16 md:mb-0">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-extrabold text-white">İzlenen Cüzdan Listesi</h2>
+                <p class="text-sm text-slate-400">Polymarket üzerinde takip ettiğiniz ve işlemlerini kopyaladığınız cüzdanlar</p>
+            </div>
+        </div>
+
+        <!-- Wallets Grid Display -->
+        <div id="wallets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading template -->
+            <div class="col-span-full text-center py-12 text-slate-500">
+                <i class="fa-solid fa-spinner animate-spin text-2xl mb-2 text-accent"></i>
+                <p>Cüzdan listesi yükleniyor...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- WALLET MODAL (Add / Edit Form) -->
+    <div id="wallet-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-white/10 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-fadeIn">
+            <!-- Modal Header -->
+            <div class="border-b border-white/5 p-5 flex items-center justify-between">
+                <h3 id="modal-title" class="text-base font-bold text-white">Takip Cüzdanı Ekle</h3>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form -->
+            <form id="wallet-form" class="p-6 space-y-4">
+                <input type="hidden" id="wallet-id">
+
+                <!-- 1. Wallet Address -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cüzdan Adresi (Ethereum / Polygon)</label>
+                    <input type="text" id="form-address" required placeholder="0x..." 
+                        class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white placeholder-slate-500 transition">
+                </div>
+
+                <!-- 2. Wallet Label -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Takma Ad / Etiket</label>
+                    <input type="text" id="form-label" required placeholder="Smart Money Whale 1" 
+                        class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white placeholder-slate-500 transition">
+                </div>
+
+                <!-- 3. Two Column Limit inputs -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Min İşlem (USDC)</label>
+                        <input type="number" id="form-min-trade" required min="1" step="any" placeholder="10" 
+                            class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white transition">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Bundan küçük işlemleri kopyalama</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Maks Kopya (USDC)</label>
+                        <input type="number" id="form-max-copy" required min="1" step="any" placeholder="250" 
+                            class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white transition">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Tek işlemde bu miktarı aşma</span>
+                    </div>
+                </div>
+
+                <!-- TP / SL inputs -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Kar Alma (TP %)</label>
+                        <input type="number" id="form-take-profit" min="0" step="any" placeholder="0" 
+                            class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white transition">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Yüzdesel hedef (0 = Pasif)</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Zarar Durdurma (SL %)</label>
+                        <input type="number" id="form-stop-loss" min="0" step="any" placeholder="0" 
+                            class="w-full px-3.5 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white transition">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Yüzdesel durdurma (0 = Pasif)</span>
+                    </div>
+                </div>
+
+
+                <!-- 4. Copy Percentage slider -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Kopyalama Yüzdesi (%)</label>
+                        <span id="slider-value" class="text-sm font-bold text-accent">100%</span>
+                    </div>
+                    <input type="range" id="form-percentage" min="1" max="100" value="100" 
+                        class="w-full h-1.5 bg-darkbg rounded-lg appearance-none cursor-pointer accent-accent">
+                    <span class="text-[10px] text-slate-500 mt-1 block">Orijinal işlem boyutunun ne kadarının kopyalanacağı</span>
+                </div>
+
+                <!-- 5. Active Status toggle -->
+                <div class="flex items-center justify-between p-3.5 bg-darkbg rounded-xl border border-white/5">
+                    <div>
+                        <h4 class="text-sm font-bold text-white">Takip Durumu</h4>
+                        <p class="text-[10px] text-slate-400">Cüzdanın işlemleri anlık olarak kopyalansın mı?</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="form-active" checked class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-200 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                    </label>
+                </div>
+
+                <!-- Modal Footer buttons -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                    <button type="button" id="btn-cancel" class="px-4 py-2.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn-accent px-5 py-2.5 text-xs rounded-lg transition">
+                        Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-white/5 bg-cardbg py-6 text-center text-xs text-slate-500">
+        <p>© 2026 PolyTrader - Polymarket Copy Trading Bot. Tüm Hakları Saklıdır.</p>
+    </footer>
+
+    <!-- Wallets Page Controller Script -->
+    <script src="/js/wallets.js"></script>
+</body>
+</html>

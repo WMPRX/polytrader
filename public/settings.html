@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayarlar - PolyTrader</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f1117',
+                        cardbg: '#1a1d27',
+                        accent: '#00d4aa',
+                        accenthover: '#00f3c3',
+                        danger: '#ff4757',
+                        success: '#2ed573',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkbg text-slate-100 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-white/5 bg-cardbg/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-accent/10 p-2 rounded-lg border border-accent/20">
+                        <i class="fa-solid fa-chart-line text-accent text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                            PolyTrader
+                        </h1>
+                        <p class="text-[10px] text-slate-400">Copy Trading Bot</p>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link font-medium text-sm py-5">Dashboard</a>
+                    <a href="/wallets" class="nav-link font-medium text-sm py-5">Cüzdan Yönetimi</a>
+                    <a href="/trades" class="nav-link font-medium text-sm py-5">İşlem Geçmişi</a>
+                    <a href="/settings" class="nav-link active font-medium text-sm py-5">Ayarlar</a>
+                </nav>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-save-settings" class="btn-accent px-5 py-2 text-xs rounded-lg flex items-center gap-1.5 shadow-lg">
+                        <i class="fa-solid fa-floppy-disk"></i> Ayarları Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Nav Bar (bottom stick) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-cardbg border-t border-white/5 z-50 flex justify-around py-2">
+        <a href="/" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/wallets" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-users-viewfinder text-lg"></i>
+            <span>Cüzdanlar</span>
+        </a>
+        <a href="/trades" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-history text-lg"></i>
+            <span>İşlemler</span>
+        </a>
+        <a href="/settings" class="flex flex-col items-center gap-0.5 text-accent text-xs">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span>Ayarlar</span>
+        </a>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-16 md:mb-0">
+        
+        <div class="mb-8">
+            <h2 class="text-2xl font-extrabold text-white">Sistem Ayarları</h2>
+            <p class="text-sm text-slate-400">Özel anahtar, risk parametreleri, telegram bildirimleri ve güvenlik ayarları</p>
+        </div>
+
+        <!-- Setting Sections -->
+        <div class="space-y-8">
+            
+            <!-- SECTION 1: Wallet Connection (Private Key) -->
+            <div class="glass-card p-6">
+                <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-key text-accent"></i> BÖLÜM 1 — Polygon Cüzdan Bağlantısı
+                </h3>
+
+                <!-- Warning box -->
+                <div class="mb-5 p-4 bg-danger/10 border border-danger/20 rounded-xl flex items-start gap-3">
+                    <div class="bg-danger/20 p-2 rounded-lg text-danger mt-0.5">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <h4 class="font-bold text-danger mb-0.5">Kritik Güvenlik Uyarısı!</h4>
+                        <p class="text-slate-400">Özel anahtarınız (Private Key) sadece yerel veritabanınızda saklanır ve asla tarayıcıya veya harici sunuculara gönderilmez. Fonlarınızın çalınmaması için <b>private key'inizi kimseyle paylaşmayın!</b> Güvenli testler için cüzdanınıza az miktarda bakiye koyarak botu denemeniz önerilir.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Polygon Özel Anahtarı (Private Key)</label>
+                        <div class="relative">
+                            <input type="password" id="set-private-key" placeholder="Örn: 0x1a2b3c... (64 hex karakter)" 
+                                class="w-full pl-3.5 pr-10 py-2.5 rounded-lg text-sm bg-darkbg border border-white/10 text-white transition">
+                            <button type="button" id="btn-toggle-key-visibility" class="absolute right-3 top-3 text-slate-500 hover:text-white transition">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Yalnızca canlı moddaki Polymarket siparişlerinizi EIP-712 ile imzalamak için kullanılır.</span>
+                    </div>
+
+                    <!-- Connection test metrics -->
+                    <div class="flex flex-wrap items-center gap-4">
+                        <button type="button" id="btn-test-connection" class="p-2 px-4 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-white/5 transition">
+                            Cüzdan Bağlantısını Test Et
+                        </button>
+                        <div id="connection-test-result" class="hidden text-xs font-medium flex items-center gap-2">
+                            <!-- Populated on test -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Risk Management & Mode -->
+            <div class="glass-card p-6">
+                <h3 class="text-base font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-cat text-accent"></i> BÖLÜM 2 — Risk Yönetimi ve Bot Modu
+                </h3>
+
+                <!-- Test Mode Toggle Switch -->
+                <div class="p-4 bg-accent/5 rounded-xl border border-accent/15 flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h4 class="text-sm font-bold text-accent">Test Modu (Simülasyon)</h4>
+                        <p class="text-xs text-slate-400">Aktif olduğunda bot işlemleri kopyalar ancak blockchain ağına göndermeden simüle eder.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="set-test-mode" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-200 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                    </label>
+                </div>
+
+                <!-- Copy Existing Trades Toggle Switch -->
+                <div class="p-4 bg-accent/5 rounded-xl border border-accent/15 flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h4 class="text-sm font-bold text-accent">Geçmiş/Mevcut Açık İşlemleri Kopyala</h4>
+                        <p class="text-xs text-slate-400">Aktif olduğunda bot başladığında cüzdanın o esnadaki son 10 açık işlemini de kopyalar. Pasif olduğunda sadece bot başladıktan sonraki yeni işlemleri kopyalar.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="set-copy-existing" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-200 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-sm">
+                    <!-- Daily loss limit -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Günlük Maksimum Zarar Limiti (USDC)</label>
+                        <input type="number" id="set-daily-loss" placeholder="500" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Günlük kayıp bu miktara ulaşırsa bot işlemleri durdurur.</span>
+                    </div>
+
+                    <!-- Single trade size cap -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Maksimum Tek İşlem Limiti (USDC)</label>
+                        <input type="number" id="set-max-single-trade" placeholder="250" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">İzlenen cüzdan büyük işlem açsa dahi kopyalama bu tutarı aşmaz.</span>
+                    </div>
+
+                    <!-- Max open positions -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Maksimum Açık Pozisyon Sayısı</label>
+                        <input type="number" id="set-max-positions" placeholder="10" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Aynı anda beklemede/aktif olabilecek maksimum kopya işlem adeti.</span>
+                    </div>
+
+                    <!-- Slippage -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Slippage (Sapma) Toleransı (%)</label>
+                        <input type="number" id="set-slippage" placeholder="5" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Mevcut fiyat, orijinal işlem fiyatından bu orandan fazla saparsa iptal et.</span>
+                    </div>
+
+                    <!-- Scanning interval -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cüzdan Tarama Aralığı (Saniye)</label>
+                        <input type="number" id="set-scan-interval" min="0.01" step="any" placeholder="30" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">İzlenen cüzdanların kontrol sıklığı (Ondalık desteklenir, min: 0.01 saniye).</span>
+                    </div>
+
+                    <!-- Default Take Profit (TP) -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Varsayılan Kar Alma (TP %)</label>
+                        <input type="number" id="set-default-tp" min="0" step="any" placeholder="0" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Açılan işlemler için varsayılan yüzdesel kar hedefi (0 = Pasif).</span>
+                    </div>
+
+                    <!-- Default Stop Loss (SL) -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Varsayılan Zarar Durdurma (SL %)</label>
+                        <input type="number" id="set-default-sl" min="0" step="any" placeholder="0" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white">
+                        <span class="text-[10px] text-slate-500 mt-1 block">Açılan işlemler için varsayılan yüzdesel kayıp limiti (0 = Pasif).</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Telegram Notifications -->
+            <div class="glass-card p-6">
+                <h3 class="text-base font-bold text-white mb-5 flex items-center gap-2">
+                    <i class="fa-brands fa-telegram text-accent"></i> BÖLÜM 3 — Telegram Bildirim Ayarları
+                </h3>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Telegram Bot Token</label>
+                            <input type="text" id="set-tg-token" placeholder="Örn: 123456789:ABCdefGhI..." class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Telegram Chat ID (Cevaplanan ID)</label>
+                            <input type="text" id="set-tg-chat-id" placeholder="Örn: -100123456789 veya 987654321" class="w-full px-3.5 py-2.5 rounded-lg bg-darkbg border border-white/10 text-white text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Notification triggers -->
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 space-y-3 text-xs">
+                        <span class="block font-bold text-slate-400 uppercase tracking-wider mb-2">Hangi Bildirimler Gönderilsin?</span>
+                        
+                        <div class="flex flex-wrap gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="notify-success" checked class="rounded border-white/10 bg-darkbg accent-accent text-accent">
+                                <span class="text-slate-300">Başarılı İşlemler</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="notify-fail" checked class="rounded border-white/10 bg-darkbg accent-accent text-accent">
+                                <span class="text-slate-300">Başarısız İşlemler</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="notify-error" checked class="rounded border-white/10 bg-darkbg accent-accent text-accent">
+                                <span class="text-slate-300">Sistem Hata/Kritik Uyarılar</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Telegram test button -->
+                    <button type="button" id="btn-test-telegram" class="p-2 px-4 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-white/5 transition">
+                        Telegram Bağlantısını Test Et
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 4: Danger Zone -->
+            <div class="glass-card p-6 border-danger/20 bg-danger/5">
+                <h3 class="text-base font-bold text-danger mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-biohazard"></i> BÖLÜM 4 — Tehlikeli Alan
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Approve USDC -->
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 flex flex-col justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-white flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-success"></i> USDC Harcama Onayı (Approve)</h4>
+                            <p class="text-[10px] text-slate-400 mt-1">Polymarket CTF Exchange kontratının cüzdanınızdaki USDC fonlarını harcayabilmesi için blockchain onayı (gas ücreti MATIC gerektirir).</p>
+                        </div>
+                        <button type="button" id="btn-approve-usdc" class="p-2 px-4 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-white/5 transition">
+                            Spender Onayı Gönder (Approve)
+                        </button>
+                    </div>
+
+                    <!-- Reset history -->
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 flex flex-col justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-white flex items-center gap-1.5"><i class="fa-solid fa-trash text-danger"></i> Tüm Geçmişi ve İstatistikleri Temizle</h4>
+                            <p class="text-[10px] text-slate-400 mt-1">Kopyalanan işlemler veritabanını tamamen sıfırlar. Cüzdanların win rate istatistikleri ve P&L grafiği başlangıca döner (Cüzdan listesi silinmez).</p>
+                        </div>
+                        <button type="button" id="btn-clear-history" class="p-2 px-4 text-xs font-semibold rounded-lg bg-danger/10 hover:bg-danger/20 text-danger border border-danger/25 transition">
+                            Tüm İşlem Geçmişini Sıfırla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency stop box -->
+                <div class="mt-6 border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-center sm:text-left">
+                        <h4 class="text-sm font-bold text-white flex items-center justify-center sm:justify-start gap-1.5"><i class="fa-solid fa-circle-stop text-danger animate-pulse"></i> Acil Durdurma Paneli (Emergency Stop)</h4>
+                        <p class="text-xs text-slate-400 mt-1">Herhangi bir acil durumda botun tüm cüzdanlardaki tarama ve kopyalamalarını tamamen askıya alır.</p>
+                    </div>
+                    <button type="button" id="btn-emergency-stop" class="w-full sm:w-auto p-3.5 px-6 font-bold text-sm rounded-xl text-white pulse-red transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ACİL BOTU DURDUR
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-white/5 bg-cardbg py-6 text-center text-xs text-slate-500">
+        <p>© 2026 PolyTrader - Polymarket Copy Trading Bot. Tüm Hakları Saklıdır.</p>
+    </footer>
+
+    <!-- Settings view Controller Script -->
+    <script src="/js/settings.js"></script>
+</body>
+</html>

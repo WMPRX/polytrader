@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İşlem Geçmişi - PolyTrader</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f1117',
+                        cardbg: '#1a1d27',
+                        accent: '#00d4aa',
+                        accenthover: '#00f3c3',
+                        danger: '#ff4757',
+                        success: '#2ed573',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkbg text-slate-100 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-white/5 bg-cardbg/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-accent/10 p-2 rounded-lg border border-accent/20">
+                        <i class="fa-solid fa-chart-line text-accent text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                            PolyTrader
+                        </h1>
+                        <p class="text-[10px] text-slate-400">Copy Trading Bot</p>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link font-medium text-sm py-5">Dashboard</a>
+                    <a href="/wallets" class="nav-link font-medium text-sm py-5">Cüzdan Yönetimi</a>
+                    <a href="/trades" class="nav-link active font-medium text-sm py-5">İşlem Geçmişi</a>
+                    <a href="/settings" class="nav-link font-medium text-sm py-5">Ayarlar</a>
+                </nav>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-export-csv" class="p-2 px-3.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1.5 border border-white/5 transition">
+                        <i class="fa-solid fa-file-csv text-accent text-sm"></i> CSV Olarak İndir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Nav Bar (bottom stick) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-cardbg border-t border-white/5 z-50 flex justify-around py-2">
+        <a href="/" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/wallets" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-users-viewfinder text-lg"></i>
+            <span>Cüzdanlar</span>
+        </a>
+        <a href="/trades" class="flex flex-col items-center gap-0.5 text-accent text-xs">
+            <i class="fa-solid fa-history text-lg"></i>
+            <span>İşlemler</span>
+        </a>
+        <a href="/settings" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span>Ayarlar</span>
+        </a>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-16 md:mb-0">
+        
+        <div class="mb-6">
+            <h2 class="text-2xl font-extrabold text-white">İşlem Geçmişi</h2>
+            <p class="text-sm text-slate-400">Takip edilen cüzdanlardan kopyalanan tüm işlemlerin detayları</p>
+        </div>
+
+        <!-- Filter Bar Card -->
+        <div class="glass-card p-5 mb-6">
+            <form id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                <!-- 1. Wallet Filter -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cüzdan Seçin</label>
+                    <select id="filter-wallet" class="w-full px-3 py-2 rounded-lg text-sm bg-darkbg border border-white/10 text-white">
+                        <option value="">Tümü</option>
+                        <!-- Dynamic options loaded via API -->
+                    </select>
+                </div>
+
+                <!-- 2. Status Filter -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Durum</label>
+                    <select id="filter-status" class="w-full px-3 py-2 rounded-lg text-sm bg-darkbg border border-white/10 text-white">
+                        <option value="">Tümü</option>
+                        <option value="SUCCESS">Başarılı (SUCCESS)</option>
+                        <option value="FAILED">Başarısız (FAILED)</option>
+                        <option value="PENDING">Beklemede (PENDING)</option>
+                        <option value="SKIPPED">Atlandı (SKIPPED)</option>
+                    </select>
+                </div>
+
+                <!-- 3. Start Date -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Başlangıç Tarihi</label>
+                    <input type="date" id="filter-start-date" class="w-full px-3 py-2 rounded-lg text-sm bg-darkbg border border-white/10 text-white">
+                </div>
+
+                <!-- 4. End Date -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Bitiş Tarihi</label>
+                    <input type="date" id="filter-end-date" class="w-full px-3 py-2 rounded-lg text-sm bg-darkbg border border-white/10 text-white">
+                </div>
+
+                <!-- 5. Submit Button -->
+                <div class="flex gap-2">
+                    <button type="submit" class="btn-accent w-full py-2.5 rounded-lg text-xs flex justify-center items-center gap-1.5">
+                        <i class="fa-solid fa-filter"></i> Filtrele
+                    </button>
+                    <button type="button" id="btn-reset-filters" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Temizle">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Trades Paginated Table Card -->
+        <div class="glass-card p-6 overflow-hidden">
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b border-white/5 text-slate-400 text-xs font-semibold uppercase">
+                            <th class="py-3 px-4">#</th>
+                            <th class="py-3 px-4">Tarih</th>
+                            <th class="py-3 px-4">Cüzdan</th>
+                            <th class="py-3 px-4">Market Sorusu</th>
+                            <th class="py-3 px-4 text-center">Yön</th>
+                            <th class="py-3 px-4">Tercih</th>
+                            <th class="py-3 px-4">Kopya / Orijinal</th>
+                            <th class="py-3 px-4">Fiyat</th>
+                            <th class="py-3 px-4 text-center">Durum</th>
+                            <th class="py-3 px-4 text-right">PnL (USDC)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-tbody" class="divide-y divide-white/5 cursor-pointer">
+                        <!-- Loaded dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Page Navigation -->
+            <div class="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+                <span id="pagination-text" class="text-xs text-slate-400">
+                    Gösterilen: 0 - 0 / Toplam: 0 işlem
+                </span>
+                <div class="flex items-center gap-1.5 text-xs font-semibold">
+                    <button id="btn-prev-page" class="p-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-50 transition">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Önceki
+                    </button>
+                    <div id="page-numbers" class="flex gap-1">
+                        <!-- Dynamic page list buttons -->
+                    </div>
+                    <button id="btn-next-page" class="p-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-50 transition">
+                        Sonraki <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Bottom Bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-cardbg border border-white/5 rounded-2xl p-5 my-8 text-center sm:text-left">
+            <div>
+                <span class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Toplam Kar / Zarar (Net P&L)</span>
+                <h4 id="summary-pnl" class="text-2xl font-extrabold text-white">$0.00</h4>
+            </div>
+            <div class="border-y sm:border-y-0 sm:border-x border-white/5 py-4 sm:py-0 sm:px-6">
+                <span class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Başarı Oranı (Win Rate)</span>
+                <h4 id="summary-winrate" class="text-2xl font-extrabold text-white">0%</h4>
+            </div>
+            <div class="sm:pl-6">
+                <span class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Toplam İşlem Adeti</span>
+                <h4 id="summary-count" class="text-2xl font-extrabold text-white">0 İşlem</h4>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- DETAILED TRADE MODAL -->
+    <div id="trade-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-white/10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl animate-fadeIn">
+            <!-- Header -->
+            <div class="border-b border-white/5 p-5 flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-accent"></i> İşlem Detay Raporu
+                </h3>
+                <button id="btn-close-trade-modal" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Detailed Grid Info -->
+            <div class="p-6 space-y-5">
+                <!-- Market Question header -->
+                <div class="bg-darkbg p-4 rounded-xl border border-white/5">
+                    <span class="text-[10px] text-accent uppercase font-bold tracking-wider">Polymarket Soru</span>
+                    <h4 id="modal-market-question" class="text-sm font-bold text-white mt-1 leading-relaxed">Soru yükleniyor...</h4>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <span class="block text-slate-400 mb-1">İzlenen Cüzdan:</span>
+                        <span id="modal-wallet-label" class="font-bold text-white">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Yön / Tercih:</span>
+                        <span id="modal-side-outcome" class="font-bold text-white">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Durum:</span>
+                        <span id="modal-status" class="font-bold">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Orijinal Miktar:</span>
+                        <span id="modal-original-amount" class="font-semibold text-slate-200">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Kopyalanan Miktar:</span>
+                        <span id="modal-copied-amount" class="font-semibold text-slate-200">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Fiyat:</span>
+                        <span id="modal-price" class="font-semibold text-slate-200">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Oluşturma Zamanı:</span>
+                        <span id="modal-created-at" class="font-semibold text-slate-200">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Yürütme Zamanı:</span>
+                        <span id="modal-executed-at" class="font-semibold text-slate-200">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Net Kar / Zarar (PnL):</span>
+                        <span id="modal-pnl" class="font-bold">-</span>
+                    </div>
+                </div>
+
+                <!-- Blockchain Hashes -->
+                <div class="space-y-2 border-t border-white/5 pt-4 text-xs">
+                    <div>
+                        <span class="block text-slate-400 mb-1">Orijinal Tx Hash:</span>
+                        <div class="flex items-center gap-1.5">
+                            <code id="modal-orig-hash" class="bg-black/30 p-1.5 px-2.5 rounded font-mono text-[11px] text-slate-300 break-all select-all flex-grow">0x...</code>
+                            <a id="modal-orig-link" href="#" target="_blank" class="p-1.5 bg-slate-800 text-slate-300 hover:text-white rounded transition" title="Gezginde Gör">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="block text-slate-400 mb-1">Kopya Tx/Sipariş ID:</span>
+                        <div class="flex items-center gap-1.5">
+                            <code id="modal-copy-hash" class="bg-black/30 p-1.5 px-2.5 rounded font-mono text-[11px] text-slate-300 break-all select-all flex-grow">-</code>
+                            <a id="modal-copy-link" href="#" target="_blank" class="p-1.5 bg-slate-800 text-slate-300 hover:text-white rounded transition hidden" title="Gezginde Gör">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Failure Error message container -->
+                <div id="modal-error-container" class="hidden border-t border-white/5 pt-4">
+                    <span class="block text-xs text-danger font-bold uppercase tracking-wider mb-1.5">Hata Açıklaması (Error Message)</span>
+                    <div class="bg-danger/5 border border-danger/20 p-3.5 rounded-xl text-xs text-danger font-mono break-words">
+                        <span id="modal-error-message">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Close button -->
+            <div class="flex items-center justify-end p-4 border-t border-white/5 bg-black/10">
+                <button id="btn-close-trade-modal-footer" class="px-5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-white/5 bg-cardbg py-6 text-center text-xs text-slate-500">
+        <p>© 2026 PolyTrader - Polymarket Copy Trading Bot. Tüm Hakları Saklıdır.</p>
+    </footer>
+
+    <!-- Trades Page Controller Script -->
+    <script src="/js/trades.js"></script>
+</body>
+</html>
